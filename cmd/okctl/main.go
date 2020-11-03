@@ -102,13 +102,14 @@ being captured. Together with slack and slick.`,
 		},
 	}
 
-	cmd.AddCommand(buildVenvCommand(o))
+	cmd.AddCommand(buildAddUserCommand(o))
+	cmd.AddCommand(buildApplyCommand(o))
 	cmd.AddCommand(buildCreateCommand(o))
 	cmd.AddCommand(buildDeleteCommand(o))
-	cmd.AddCommand(buildApplyCommand(o))
+	cmd.AddCommand(buildScaffoldCommand(o))
 	cmd.AddCommand(buildShowCommand(o))
+	cmd.AddCommand(buildVenvCommand(o))
 	cmd.AddCommand(buildVersionCommand(o))
-	cmd.AddCommand(buildAddUserCommand(o))
 
 	f := cmd.Flags()
 	f.StringVarP(&outputFormat, "output", "o", "text",
