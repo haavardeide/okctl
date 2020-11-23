@@ -209,6 +209,69 @@ func DefaultStsProvider(sess *session.Session) stsiface.STSAPI {
 // to missing or expired credentials
 type PopulateFn func(*AuthSAML) error
 
+//type AuthMachine struct {
+//	AwsAccountID string
+//	Region string
+//
+//	AccessKey string
+//	SecretAccessKey string
+//
+//	ProviderFn StsProviderFn
+//}
+//
+//func (a *AuthMachine) Retrieve() (*Credentials, error) {
+//	sesh, err := session.NewSession(&aws.Config{
+//		Credentials:                       awscredentials.NewEnvCredentials(),
+//		Region:                            &a.Region,
+//	})
+//	if err != nil {
+//	    return nil, fmt.Errorf("error fetching credentials: %w", err)
+//	}
+//
+//	svc := a.ProviderFn(sesh)
+//	resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
+//		DurationSeconds: aws.Int64(defaultSessionDuration),
+//		ExternalId:      aws.String("thisissounique"),
+//		PolicyArns: []*sts.PolicyDescriptorType{{
+//			Arn: aws.String("arn:aws:iam::790988435217:policy/okctlmachine"),
+//		}, {
+//			Arn: aws.String("arn:aws:iam::790988435217:policy/oslokommune/admin-policy"),
+//		}},
+//		RoleArn:         aws.String(v1alpha1.RoleARN(a.AwsAccountID)),
+//		RoleSessionName: aws.String("Testingthis"),
+//	})
+//	if err != nil {
+//	    return nil, fmt.Errorf("error assuming role: %w", err)
+//	}
+//
+//	return &Credentials{
+//		AccessKeyID:     *resp.Credentials.AccessKeyId,
+//		SecretAccessKey: *resp.Credentials.SecretAccessKey,
+//		SessionToken:    *resp.Credentials.SessionToken,
+//		SecurityToken:   *resp.Credentials.SessionToken,
+//		PrincipalARN:    v1alpha1.PrincipalARN(a.AwsAccountID),
+//		Expires:         *resp.Credentials.Expiration,
+//		Region:          a.Region,
+//	}, nil
+//}
+//
+//func (a *AuthMachine) Invalidate() {
+//	//TODO
+//}
+//
+//func (a *AuthMachine) Valid() bool {
+//	return true // TODO:
+//}
+//
+//func NewAuthMachine(awsAccountID, region string, providerFn StsProviderFn) *AuthMachine {
+//	return &AuthMachine{
+//		AwsAccountID: awsAccountID,
+//		Region: region,
+//
+//		ProviderFn: providerFn,
+//	}
+//}
+
 // AuthSAML contains the state for performing a SAML authentication with AWS
 type AuthSAML struct {
 	Username     string

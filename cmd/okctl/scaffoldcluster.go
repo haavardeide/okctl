@@ -72,4 +72,4 @@ const usageAWSAccountID = `the aws account where the resources provisioned by ok
 const usageOrganization = `the organization that owns the infrastructure-as-code repository`
 const usageRepository = `the name of the repository that will contain infrastructure-as-code`
 const usageTeam = `the team that is responsible and has access rights to the infrastructure-as-code repository`
-const exampleUsage = `okctl scaffold cluster utviklerportalen production`
+const exampleUsage = `okctl scaffold cluster utviklerportalen production > cluster.yaml`

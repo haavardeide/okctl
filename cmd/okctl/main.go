@@ -22,7 +22,7 @@ func main() {
 	}
 }
 
-func loadRepoData(o *okctl.Okctl, cmd *cobra.Command) error {
+func loadRepoData(o *okctl.Okctl, _ *cobra.Command) error {
 	repoDataNotFound := load.CreateOnRepoDataNotFound()
 
 	if o.NoInput {
@@ -34,7 +34,7 @@ func loadRepoData(o *okctl.Okctl, cmd *cobra.Command) error {
 	// not want the configuration to be overridden by env
 	// vars or similar.
 	// We can drop sending *cobra.Command on here.
-	o.RepoDataLoader = load.RepoDataFromConfigFile(cmd, repoDataNotFound)
+	o.RepoDataLoader = load.RepoDataFromConfigFile(repoDataNotFound)
 
 	return o.LoadRepoData()
 }
