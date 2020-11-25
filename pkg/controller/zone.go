@@ -2,8 +2,14 @@ package controller
 
 import (
 	"fmt"
+	"github.com/miekg/dns"
+	"github.com/mishudark/errors"
 	"github.com/oslokommune/okctl/pkg/client"
 )
+
+type HostedZoneMetadata struct {
+	Domain string
+}
 
 type zoneReconsiler struct {
 	commonMetadata *CommonMetadata
@@ -17,10 +23,19 @@ func (z *zoneReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 
 // Reconsile knows how to ensure the desired state is achieved
 func (z *zoneReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+	metadata, ok := node.Metadata.(HostedZoneMetadata)
+	if !ok {
+		return nil, errors.New("error casting HostedZone metadata")
+	}
+	
 	switch node.State {
 	case SynchronizationNodeStatePresent:
+		fqdn := dns.Fqdn(metadata.Domain)
+
 		_, err := z.client.CreatePrimaryHostedZoneWithoutUserinput(z.commonMetadata.Ctx, client.CreatePrimaryHostedZoneOpts{
 			ID:     z.commonMetadata.Id,
+			Domain: metadata.Domain,
+			FQDN: fqdn,
 		})
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating hosted zone: %w", err)

@@ -1,0 +1,76 @@
+
+package controller
+
+import (
+	"fmt"
+	"github.com/mishudark/errors"
+	"github.com/oslokommune/okctl/pkg/client"
+	"github.com/oslokommune/okctl/pkg/client/store"
+	"github.com/oslokommune/okctl/pkg/config/state"
+)
+
+type GithubMetadata struct {
+	Organization string
+	Repository string
+}
+
+type GithubGetter func() state.Github
+type GithubSetter func(github state.Github) (*store.Report, error)
+
+type GithubResourceState struct {
+	Getter GithubGetter
+	Saver GithubSetter
+}
+
+type githubReconsiler struct {
+	commonMetadata *CommonMetadata
+
+	client client.GithubService
+}
+
+func (z *githubReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+	z.commonMetadata = metadata
+}
+
+// Reconsile knows how to ensure the desired state is achieved
+func (z *githubReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+	metadata, ok := node.Metadata.(GithubMetadata)
+	if !ok {
+		return nil, errors.New("unable to cast Github metadata")
+	}
+
+	resourceState, ok := node.ResourceState.(GithubResourceState)
+	if !ok {
+		return nil, errors.New("unable to cast Github resource state")
+	}
+
+	switch node.State {
+	case SynchronizationNodeStatePresent:
+		_, err := z.client.ReadyGithubInfrastructureRepositoryWithoutUserinput(z.commonMetadata.Ctx, client.ReadyGithubInfrastructureRepositoryOpts{
+			ID:           z.commonMetadata.Id,
+			Organisation: metadata.Organization,
+			Repository:   metadata.Repository,
+		})
+		if err != nil {
+			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating Github resource: %w", err)
+		}
+
+		gh := resourceState.Getter()
+		gh.Organisation = metadata.Organization
+
+		_, err = resourceState.Saver(gh)
+		if err != nil {
+		    return nil, fmt.Errorf("error saving github: %w", err)
+		}
+	case SynchronizationNodeStateAbsent:
+		return nil, errors.New("deleting Github resource is not implemented")
+	}
+
+	return &ReconsilationResult{Requeue: false}, nil
+}
+
+func NewGithubReconsiler(client client.GithubService) *githubReconsiler {
+	return &githubReconsiler{
+		client: client,
+	}
+}

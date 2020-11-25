@@ -3,7 +3,6 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"github.com/oslokommune/okctl/pkg/api"
 	"github.com/oslokommune/okctl/pkg/client"
 )
 
@@ -32,7 +31,7 @@ func (z *externalDNSReconsiler) Reconsile(node *SynchronizationNode) (*Reconsila
 	switch node.State {
 	case SynchronizationNodeStatePresent:
 		_, err := z.client.CreateExternalDNS(z.commonMetadata.Ctx, client.CreateExternalDNSOpts{
-			ID:           api.ID{},
+			ID:           z.commonMetadata.Id,
 			HostedZoneID: resourceState.HostedZoneID,
 			Domain:       resourceState.Domain,
 		})

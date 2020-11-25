@@ -10,7 +10,7 @@ import (
 type SynchronizationNodeType int
 const (
 	// SynchronizationNodeTypeNoop represents a node that has no actions associated with it. For now, only the root node
-	SynchronizationNodeTypeNoop SynchronizationNodeType = iota
+	SynchronizationNodeTypeNoop SynchronizationNodeType = iota // TODO: NodeTypeGroup
 	// SynchronizationNodeTypeZone represents a HostedZone resource
 	SynchronizationNodeTypeZone
 	// SynchronizationNodeTypeVPC represents a VPC resource
@@ -23,6 +23,12 @@ const (
 	SynchronizationNodeTypeALBIngress
 	// SynchronizationNodeTypeExternalDNS represents an External DNS resource
 	SynchronizationNodeTypeExternalDNS
+	// SynchronizationNodeTypeGithub represents a Github setup
+	SynchronizationNodeTypeGithub
+	// SynchronizationNodeTypeIdentityManager represents a Identity Manager resource
+	SynchronizationNodeTypeIdentityManager
+	// SynchronizationNodeTypeArgoCD represents an ArgoCD resource
+	SynchronizationNodeTypeArgoCD
 )
 
 // SynchronizationNodeState defines what state the resource is in, used to infer what action to take
@@ -43,16 +49,21 @@ type CommonMetadata struct {
 	Id api.ID
 }
 
+// StateRefreshFn is a function that attempts to retrieve state potentially can only be retrieved at runtime. E.g.:
+// state that can only exist after an external resource has been created
 type StateRefreshFn func(node *SynchronizationNode)
 
 // SynchronizationNode represents a component of the cluster and its dependencies
 type SynchronizationNode struct {
 	Type SynchronizationNodeType
 	State SynchronizationNodeState
-	
+
+	// Contains metadata regarding the resource supplied by the desired state definition
 	Metadata             interface{}
 
 	StateRefresher 		 StateRefreshFn
+	// ResourceState contains data that needs to be retrieved runtime. In other words, data that possibly can only exist
+	// after an external resource has been created
 	ResourceState 		 interface{}
 
 	Children []*SynchronizationNode
@@ -68,6 +79,10 @@ func (receiver *SynchronizationNode) refreshState() {
 
 func (receiver *SynchronizationNode) SetStateRefresher(nodeType SynchronizationNodeType, refresher StateRefreshFn) {
 	targetNode := receiver.GetNode(&SynchronizationNode{Type: nodeType})
+
+	if targetNode == nil {
+		return
+	}
 
 	targetNode.StateRefresher = refresher
 }
@@ -123,8 +138,6 @@ func (receiver *SynchronizationNode) ApplyFunction(fn ApplyFn, targetGraph *Sync
 }
 
 func ApplyCurrentState(receiver *SynchronizationNode, target *SynchronizationNode) {
-	receiver.StateRefresher = target.StateRefresher
-
 	if receiver.State == target.State {
 		receiver.State = SynchronizationNodeStateNoop
 	}

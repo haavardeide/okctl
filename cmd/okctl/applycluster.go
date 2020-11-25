@@ -7,6 +7,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/api"
 	"github.com/oslokommune/okctl/pkg/apis/okctl.io/v1alpha1"
 	"github.com/oslokommune/okctl/pkg/config/load"
+	"github.com/oslokommune/okctl/pkg/config/state"
 	"github.com/oslokommune/okctl/pkg/controller"
 	"github.com/oslokommune/okctl/pkg/okctl"
 	"github.com/oslokommune/okctl/pkg/spinner"
@@ -78,7 +79,10 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 				AWSAccountID: strconv.Itoa(opts.Declaration.Metadata.AccountID),
 				Environment:  opts.Declaration.Metadata.Environment,
 				Repository:   o.RepoStateWithEnv.GetMetadata().Name,
-				ClusterName:  opts.Declaration.Metadata.Name,
+				ClusterName: o.RepoStateWithEnv.GetClusterName(),
+				// TODO: Other services possibly relies on o.RepoStateWithEnv.GetClusterName(). Need to ensure
+				// using a custom name is OK
+				// ClusterName:  opts.Declaration.Metadata.Name,
 			}
 
 			spin, err := spinner.New("synchronizing", o.Err)
@@ -87,31 +91,55 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			    return fmt.Errorf("error getting services: %w", err)
 			}
 
-			desiredGraph := controller.CreateDesiredStateGraph(opts.Declaration)
-			controller.ApplyDesiredStateMetadata(desiredGraph, opts.Declaration)
-			
 			outputDir, _ := o.GetRepoOutputDir(opts.Declaration.Metadata.Environment)
-			createCurrentStateGraphOpts, _ := controller.NewCreateCurrentStateGraphOpts(
-				o.FileSystem,
-				outputDir,
-			)
-			currentGraph := controller.CreateCurrentStateGraph(createCurrentStateGraphOpts)
 
-			currentGraph.SetStateRefresher(controller.SynchronizationNodeTypeCluster, controller.CreateClusterStateRefresher(
+			desiredGraph := controller.CreateDesiredStateGraph(opts.Declaration)
+			
+			repoDir, err := o.GetRepoDir() // TODO: Should be moved up
+			if err != nil {
+			    return fmt.Errorf("could not get Repository dir: %w", err)
+			}
+
+			err = controller.ApplyDesiredStateMetadata(desiredGraph, opts.Declaration, repoDir)
+			if err != nil {
+			    return fmt.Errorf("could not apply desired state metadata: %w", err)
+			}
+
+			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeCluster, controller.CreateClusterStateRefresher(
 				o.FileSystem,
 				outputDir,
 				func() string { return o.RepoStateWithEnv.GetVPC().CIDR },
 			))
 
-			currentGraph.SetStateRefresher(controller.SynchronizationNodeTypeALBIngress, controller.CreateALBIngressControllerRefresher(
+			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeALBIngress, controller.CreateALBIngressControllerRefresher(
 				o.FileSystem,
 				outputDir,
 			))
 
-			currentGraph.SetStateRefresher(controller.SynchronizationNodeTypeExternalDNS, controller.CreateExternalDNSStateRefresher(
+			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeExternalDNS, controller.CreateExternalDNSStateRefresher(
 				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
 				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().ID },
 			))
+
+			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeIdentityManager, controller.CreateIdentityManagerRefresher(
+				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
+				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().ID },
+			))
+
+			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeGithub, controller.CreateGithubStateRefresher(
+				o.RepoStateWithEnv.GetGithub,
+				o.RepoStateWithEnv.SaveGithub,
+			))
+
+			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeArgoCD, controller.CreateArgocdStateRefresher(
+				func() *state.HostedZone { return o.RepoStateWithEnv.GetPrimaryHostedZone() },
+			))
+
+			createCurrentStateGraphOpts, _ := controller.NewCreateCurrentStateGraphOpts(
+				o.FileSystem,
+				outputDir,
+			)
+			currentGraph := controller.CreateCurrentStateGraph(createCurrentStateGraphOpts)
 
 			reconsiliationManager := controller.NewReconsilerManager(&controller.CommonMetadata{
 				Ctx: o.Ctx,
@@ -124,6 +152,8 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeExternalSecrets, controller.NewExternalSecretsReconsiler(services.ExternalSecrets))
 			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeALBIngress, controller.NewALBIngressReconsiler(services.ALBIngressController))
 			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeExternalDNS, controller.NewExternalDNSReconsiler(services.ExternalDNS))
+			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeGithub, controller.NewGithubReconsiler(services.Github))
+			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeIdentityManager, controller.NewIdentityManagerReconsiler(services.IdentityManager))
 
 			err = controller.Synchronize(reconsiliationManager, desiredGraph, currentGraph)
 			if err != nil {

@@ -23,17 +23,17 @@ type reconsilerManager struct {
 }
 
 // AddReconsiler makes a reconsiler available in the reconsilerManager
-func (receiver *reconsilerManager) AddReconsiler(key SynchronizationNodeType, r Reconsiler) {
-	r.SetCommonMetadata(receiver.commonMetadata)
+func (manager *reconsilerManager) AddReconsiler(key SynchronizationNodeType, reconsiler Reconsiler) {
+	reconsiler.SetCommonMetadata(manager.commonMetadata)
 	
-	receiver.reconsilers[key] = r
+	manager.reconsilers[key] = reconsiler
 }
 
 // Reconsile chooses the correct reconsiler to use based on a nodes type
-func (receiver *reconsilerManager) Reconsile(node *SynchronizationNode)	(*ReconsilationResult, error)  {
+func (manager *reconsilerManager) Reconsile(node *SynchronizationNode)	(*ReconsilationResult, error)  {
 	node.refreshState()
 	
-	return receiver.reconsilers[node.Type].Reconsile(node)
+	return manager.reconsilers[node.Type].Reconsile(node)
 }
 
 // NewReconsilerManager creates a new reconsilerManager with a NoopReconsiler already installed
@@ -44,12 +44,4 @@ func NewReconsilerManager(metadata *CommonMetadata) *reconsilerManager {
 			SynchronizationNodeTypeNoop: &NoopReconsiler{},
 		},
 	}
-}
-
-// NoopReconsiler handles reconsiliation for meta nodes (e.g. the root node)
-type NoopReconsiler struct {}
-
-func (receiver *NoopReconsiler) SetCommonMetadata(_ *CommonMetadata) {}
-func (receiver *NoopReconsiler) Reconsile(_ *SynchronizationNode) (*ReconsilationResult, error) {
-	return &ReconsilationResult{Requeue: false}, nil
 }
