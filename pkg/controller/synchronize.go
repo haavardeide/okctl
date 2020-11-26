@@ -32,8 +32,8 @@ func handleNode(reconsilerManager *reconsiler.ReconsilerManager, currentNode *re
 	return nil
 }
 
-// applyCurrentState knows how to apply the current state on a desired state to produce a diff that knows which
-// resources to create, and which resources is already existing
+// applyCurrentState knows how to apply the current state on a desired state ResourceNode tree to produce a diff that
+// knows which resources to create, and which resources is already existing
 func applyCurrentState(receiver *resourcetree.ResourceNode, target *resourcetree.ResourceNode) {
 	if receiver.State == target.State {
 		receiver.State = resourcetree.ResourceNodeStateNoop
