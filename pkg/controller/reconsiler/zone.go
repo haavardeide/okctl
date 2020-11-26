@@ -1,10 +1,11 @@
-package controller
+package reconsiler
 
 import (
 	"fmt"
 	"github.com/miekg/dns"
 	"github.com/mishudark/errors"
 	"github.com/oslokommune/okctl/pkg/client"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 // HostedZoneMetadata contains data extracted from the desired state
@@ -13,25 +14,25 @@ type HostedZoneMetadata struct {
 }
 
 type zoneReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 	
 	client client.DomainService
 }
 
 // SetCommonMetadata saves common metadata for use in Reconsile()
-func (z *zoneReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *zoneReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *zoneReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *zoneReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	metadata, ok := node.Metadata.(HostedZoneMetadata)
 	if !ok {
 		return nil, errors.New("error casting HostedZone metadata")
 	}
 	
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		fqdn := dns.Fqdn(metadata.Domain)
 
 		_, err := z.client.CreatePrimaryHostedZoneWithoutUserinput(z.commonMetadata.Ctx, client.CreatePrimaryHostedZoneOpts{
@@ -42,7 +43,7 @@ func (z *zoneReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationRes
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating hosted zone: %w", err)
 		}
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		err := z.client.DeletePrimaryHostedZone(z.commonMetadata.Ctx, client.DeletePrimaryHostedZoneOpts{ID: z.commonMetadata.Id})
 		if err != nil {
 		    return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting hosted zone: %w", err)

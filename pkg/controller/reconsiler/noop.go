@@ -1,4 +1,8 @@
-package controller
+package reconsiler
+
+import (
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
+)
 
 // noopMetadata contains data known at initialization. Usually information from the desired state
 type noopMetadata struct {}
@@ -13,10 +17,10 @@ type NoopReconsiler struct {}
 
 // SetCommonMetadata knows how to store common metadata on the reconsiler. This should do nothing if common metadata is
 // not needed
-func (receiver *NoopReconsiler) SetCommonMetadata(_ *CommonMetadata) {}
+func (receiver *NoopReconsiler) SetCommonMetadata(_ *resourcetree.CommonMetadata) {}
 
 // Reconsile knows how to create, update and delete the relevant resource
-func (receiver *NoopReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (receiver *NoopReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	//metadata, ok := node.Metadata.(noopMetadata)
 	//if !ok {
 	//	return nil, errors.New("could not cast Noop metadata")
@@ -28,9 +32,9 @@ func (receiver *NoopReconsiler) Reconsile(node *SynchronizationNode) (*Reconsila
 	//}
 
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		// Create a resource
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		// Delete a resource
 	}
 

@@ -1,4 +1,4 @@
-package controller
+package reconsiler
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"github.com/mishudark/errors"
 	"github.com/oslokommune/okctl/pkg/api"
 	"github.com/oslokommune/okctl/pkg/client"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 // IdentityManagerResourceState contains runtime data needed in Reconsile()
@@ -15,13 +16,13 @@ type IdentityManagerResourceState struct {
 }
 
 type identityManagerReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 
 	client client.IdentityManagerService
 }
 
 // SetCommonMetadata saves common metadata for use in Reconsile()
-func (z *identityManagerReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *identityManagerReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
@@ -31,14 +32,14 @@ Requires:
 - Hosted Zone
 - Nameservers setup
  */
-func (z *identityManagerReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *identityManagerReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	resourceState, ok := node.ResourceState.(IdentityManagerResourceState)
 	if !ok {
 		return nil, errors.New("unable to cast identity manager resourceState")
 	}
 
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		authDomain := fmt.Sprintf("auth.%s", resourceState.Domain)
 		authFQDN := dns.Fqdn(authDomain)
 		
@@ -51,7 +52,7 @@ func (z *identityManagerReconsiler) Reconsile(node *SynchronizationNode) (*Recon
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating identity manager resource: %w", err)
 		}
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		return nil, errors.New("deleting identity manager resource is not implemented")
 	}
 

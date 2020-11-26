@@ -1,10 +1,11 @@
-package controller
+package reconsiler
 
 import (
 	"fmt"
 	"github.com/mishudark/errors"
 	"github.com/oslokommune/okctl/pkg/client"
 	"github.com/oslokommune/okctl/pkg/config/state"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 // ArgocdMetadata contains data known before anything has been done, which is needed in Reconsile()
@@ -22,13 +23,13 @@ type ArgocdResourceState struct {
 }
 
 type argocdReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 
 	client client.ArgoCDService
 }
 
 // SetCommonMetadata saves common metadata for use in Reconsile()
-func (z *argocdReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *argocdReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
@@ -39,14 +40,14 @@ Dependent on:
 - Cognito user pool
 - Primary hosted Zone
  */
-func (z *argocdReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *argocdReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	resourceState, ok := node.ResourceState.(ArgocdResourceState)
 	if !ok {
 		return nil, errors.New("error casting argocd resource resourceState")
 	}
 
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		_, err := z.client.CreateArgoCD(z.commonMetadata.Ctx, client.CreateArgoCDOpts{
 			ID:                 z.commonMetadata.Id,
 			Domain:             resourceState.HostedZone.Domain,
@@ -60,7 +61,7 @@ func (z *argocdReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationR
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating argocd: %w", err)
 		}
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		return nil, errors.New("deletion of the argocd resource is not implemented")
 	}
 

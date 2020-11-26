@@ -1,10 +1,11 @@
-package controller
+package reconsiler
 
 import (
 	"errors"
 	"fmt"
 	"github.com/oslokommune/okctl/pkg/api"
 	"github.com/oslokommune/okctl/pkg/client"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 // ClusterResourceState contains runtime data needed in Reconsile()
@@ -13,25 +14,25 @@ type ClusterResourceState struct {
 }
 
 type clusterReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 
 	client client.ClusterService
 }
 
 // SetCommonMetadata saves common metadata for use in Reconsile()
-func (z *clusterReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *clusterReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *clusterReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *clusterReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	resourceState, ok := node.ResourceState.(ClusterResourceState)
 	if !ok {
 		return nil, errors.New("error casting cluster resourceState")
 	}
 
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		_, err := z.client.CreateCluster(z.commonMetadata.Ctx, api.ClusterCreateOpts{
 			ID:                z.commonMetadata.Id,
 			Cidr:              resourceState.VPC.Cidr,
@@ -42,7 +43,7 @@ func (z *clusterReconsiler) Reconsile(node *SynchronizationNode) (*Reconsilation
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating cluster: %w", err)
 		}
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		err := z.client.DeleteCluster(z.commonMetadata.Ctx, api.ClusterDeleteOpts{ID: z.commonMetadata.Id})
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting cluster: %w", err)

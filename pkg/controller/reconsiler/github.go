@@ -1,4 +1,4 @@
-package controller
+package reconsiler
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/client"
 	"github.com/oslokommune/okctl/pkg/client/store"
 	"github.com/oslokommune/okctl/pkg/config/state"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 // GithubMetadata contains data from the desired state
@@ -26,18 +27,18 @@ type GithubResourceState struct {
 }
 
 type githubReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 
 	client client.GithubService
 }
 
 // SetCommonMetadata saves common metadata for use in Reconsile()
-func (z *githubReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *githubReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *githubReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *githubReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	metadata, ok := node.Metadata.(GithubMetadata)
 	if !ok {
 		return nil, errors.New("unable to cast Github metadata")
@@ -49,7 +50,7 @@ func (z *githubReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationR
 	}
 
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		_, err := z.client.ReadyGithubInfrastructureRepositoryWithoutUserinput(z.commonMetadata.Ctx, client.ReadyGithubInfrastructureRepositoryOpts{
 			ID:           z.commonMetadata.Id,
 			Organisation: metadata.Organization,
@@ -66,7 +67,7 @@ func (z *githubReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationR
 		if err != nil {
 		    return nil, fmt.Errorf("error saving github: %w", err)
 		}
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		return nil, errors.New("deleting Github resource is not implemented")
 	}
 

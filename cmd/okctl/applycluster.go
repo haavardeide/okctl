@@ -9,6 +9,8 @@ import (
 	"github.com/oslokommune/okctl/pkg/config/load"
 	"github.com/oslokommune/okctl/pkg/config/state"
 	"github.com/oslokommune/okctl/pkg/controller"
+	"github.com/oslokommune/okctl/pkg/controller/reconsiler"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 	"github.com/oslokommune/okctl/pkg/okctl"
 	"github.com/oslokommune/okctl/pkg/spinner"
 	"github.com/spf13/cobra"
@@ -105,33 +107,33 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			    return fmt.Errorf("could not apply desired state metadata: %w", err)
 			}
 
-			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeCluster, controller.CreateClusterStateRefresher(
+			desiredGraph.SetStateRefresher(resourcetree.SynchronizationNodeTypeCluster, controller.CreateClusterStateRefresher(
 				o.FileSystem,
 				outputDir,
 				func() string { return o.RepoStateWithEnv.GetVPC().CIDR },
 			))
 
-			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeALBIngress, controller.CreateALBIngressControllerRefresher(
+			desiredGraph.SetStateRefresher(resourcetree.SynchronizationNodeTypeALBIngress, controller.CreateALBIngressControllerRefresher(
 				o.FileSystem,
 				outputDir,
 			))
 
-			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeExternalDNS, controller.CreateExternalDNSStateRefresher(
+			desiredGraph.SetStateRefresher(resourcetree.SynchronizationNodeTypeExternalDNS, controller.CreateExternalDNSStateRefresher(
 				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
 				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().ID },
 			))
 
-			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeIdentityManager, controller.CreateIdentityManagerRefresher(
+			desiredGraph.SetStateRefresher(resourcetree.SynchronizationNodeTypeIdentityManager, controller.CreateIdentityManagerRefresher(
 				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
 				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().ID },
 			))
 
-			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeGithub, controller.CreateGithubStateRefresher(
+			desiredGraph.SetStateRefresher(resourcetree.SynchronizationNodeTypeGithub, controller.CreateGithubStateRefresher(
 				o.RepoStateWithEnv.GetGithub,
 				o.RepoStateWithEnv.SaveGithub,
 			))
 
-			desiredGraph.SetStateRefresher(controller.SynchronizationNodeTypeArgoCD, controller.CreateArgocdStateRefresher(
+			desiredGraph.SetStateRefresher(resourcetree.SynchronizationNodeTypeArgoCD, controller.CreateArgocdStateRefresher(
 				func() *state.HostedZone { return o.RepoStateWithEnv.GetPrimaryHostedZone() },
 			))
 
@@ -141,19 +143,19 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			)
 			currentGraph := controller.CreateCurrentStateGraph(createCurrentStateGraphOpts)
 
-			reconsiliationManager := controller.NewReconsilerManager(&controller.CommonMetadata{
+			reconsiliationManager := reconsiler.NewReconsilerManager(&resourcetree.CommonMetadata{
 				Ctx: o.Ctx,
 				Id:  id,
 			})
 
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeZone, controller.NewZoneReconsiler(services.Domain))
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeVPC, controller.NewVPCReconsiler(services.Vpc))
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeCluster, controller.NewClusterReconsiler(services.Cluster))
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeExternalSecrets, controller.NewExternalSecretsReconsiler(services.ExternalSecrets))
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeALBIngress, controller.NewALBIngressReconsiler(services.ALBIngressController))
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeExternalDNS, controller.NewExternalDNSReconsiler(services.ExternalDNS))
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeGithub, controller.NewGithubReconsiler(services.Github))
-			reconsiliationManager.AddReconsiler(controller.SynchronizationNodeTypeIdentityManager, controller.NewIdentityManagerReconsiler(services.IdentityManager))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeZone, reconsiler.NewZoneReconsiler(services.Domain))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeVPC, reconsiler.NewVPCReconsiler(services.Vpc))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeCluster, reconsiler.NewClusterReconsiler(services.Cluster))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeExternalSecrets, reconsiler.NewExternalSecretsReconsiler(services.ExternalSecrets))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeALBIngress, reconsiler.NewALBIngressReconsiler(services.ALBIngressController))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeExternalDNS, reconsiler.NewExternalDNSReconsiler(services.ExternalDNS))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeGithub, reconsiler.NewGithubReconsiler(services.Github))
+			reconsiliationManager.AddReconsiler(resourcetree.SynchronizationNodeTypeIdentityManager, reconsiler.NewIdentityManagerReconsiler(services.IdentityManager))
 
 			err = controller.Synchronize(reconsiliationManager, desiredGraph, currentGraph)
 			if err != nil {

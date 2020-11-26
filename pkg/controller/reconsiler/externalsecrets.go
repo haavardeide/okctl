@@ -1,31 +1,32 @@
-package controller
+package reconsiler
 
 import (
 	"fmt"
 	"github.com/oslokommune/okctl/pkg/client"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 type externalSecretsReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 	
 	client client.ExternalSecretsService
 }
 
 // SetCommonMetadata saves common metadata for use in Reconsile()
-func (z *externalSecretsReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *externalSecretsReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *externalSecretsReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *externalSecretsReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		_, err := z.client.CreateExternalSecrets(z.commonMetadata.Ctx, client.CreateExternalSecretsOpts{ID: z.commonMetadata.Id})
 		
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating external secrets: %w", err)
 		}
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		err := z.client.DeleteExternalSecrets(z.commonMetadata.Ctx, z.commonMetadata.Id)
 
 		if err != nil {

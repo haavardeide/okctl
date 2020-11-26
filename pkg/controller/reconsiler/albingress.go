@@ -1,9 +1,10 @@
-package controller
+package reconsiler
 
 import (
 	"errors"
 	"fmt"
 	"github.com/oslokommune/okctl/pkg/client"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 // AlbIngressControllerResourceState contains runtime data necessary for Reconsile to do its job
@@ -12,24 +13,24 @@ type AlbIngressControllerResourceState struct {
 }
 
 type albIngressReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 	client client.ALBIngressControllerService
 }
 
 // SetCommonMetadata stores common metadata for later use
-func (z *albIngressReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *albIngressReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *albIngressReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *albIngressReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	state, ok := node.ResourceState.(AlbIngressControllerResourceState)
 	if !ok {
 	    return nil, errors.New("error casting ALB Ingress Controller state")
 	}
 
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		_, err := z.client.CreateALBIngressController(z.commonMetadata.Ctx, client.CreateALBIngressControllerOpts{
 			ID:    z.commonMetadata.Id,
 			VPCID: state.VpcID,
@@ -37,7 +38,7 @@ func (z *albIngressReconsiler) Reconsile(node *SynchronizationNode) (*Reconsilat
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating ALB Ingress controller: %w", err)
 		}
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		err := z.client.DeleteALBIngressController(z.commonMetadata.Ctx, z.commonMetadata.Id)
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting ALB Ingress controller: %w", err)

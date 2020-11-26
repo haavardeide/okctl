@@ -1,10 +1,11 @@
-package controller
+package reconsiler
 
 import (
 	"fmt"
 	"github.com/mishudark/errors"
 	"github.com/oslokommune/okctl/pkg/api"
 	"github.com/oslokommune/okctl/pkg/client"
+	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 )
 
 // VPCMetadata contains data extracted from the desired state
@@ -14,25 +15,25 @@ type VPCMetadata struct {
 }
 
 type vpcReconsiler struct {
-	commonMetadata *CommonMetadata
+	commonMetadata *resourcetree.CommonMetadata
 	
 	client client.VPCService
 }
 
 // SetCommonMetadata saves common metadata for use in Reconsile()
-func (z *vpcReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
+func (z *vpcReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata) {
 	z.commonMetadata = metadata
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *vpcReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResult, error) {
+func (z *vpcReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
 	metadata, ok := node.Metadata.(VPCMetadata)
 	if !ok {
 	    return nil, errors.New("unable to cast VPC metadata")
 	}
 
 	switch node.State {
-	case SynchronizationNodeStatePresent:
+	case resourcetree.SynchronizationNodeStatePresent:
 		_, err := z.client.CreateVpc(z.commonMetadata.Ctx, api.CreateVpcOpts{
 			ID:      z.commonMetadata.Id,
 			Cidr:    metadata.Cidr,
@@ -41,9 +42,7 @@ func (z *vpcReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResu
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating vpc: %w", err)
 		}
-		
-
-	case SynchronizationNodeStateAbsent:
+	case resourcetree.SynchronizationNodeStateAbsent:
 		err := z.client.DeleteVpc(z.commonMetadata.Ctx, api.DeleteVpcOpts{ ID: z.commonMetadata.Id })
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting vpc: %w", err)
