@@ -1,4 +1,3 @@
-
 package controller
 
 import (
@@ -8,10 +7,12 @@ import (
 	"github.com/oslokommune/okctl/pkg/config/state"
 )
 
+// ArgocdMetadata contains data known before anything has been done, which is needed in Reconsile()
 type ArgocdMetadata struct {
 	Organization string
 }
 
+// ArgocdResourceState contains runtime data needed in Reconsile()
 type ArgocdResourceState struct {
 	HostedZone *state.HostedZone
 	Repository *client.GithubRepository
@@ -26,6 +27,7 @@ type argocdReconsiler struct {
 	client client.ArgoCDService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *argocdReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -42,15 +44,6 @@ func (z *argocdReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationR
 	if !ok {
 		return nil, errors.New("error casting argocd resource resourceState")
 	}
-	
-	//repository := client.GithubRepository{
-	//	ID:           z.commonMetadata.Id,
-	//	Organisation: "",
-	//	Repository:   z.commonMetadata.Id.Repository,
-	//	FullName:     "",
-	//	GitURL:       "",
-	//	DeployKey:    nil,
-	//}
 
 	switch node.State {
 	case SynchronizationNodeStatePresent:
@@ -74,6 +67,7 @@ func (z *argocdReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationR
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewArgocdReconsiler creates a new reconsiler for the ArgoCD resource
 func NewArgocdReconsiler(client client.ArgoCDService) *argocdReconsiler {
 	return &argocdReconsiler{
 		client: client,

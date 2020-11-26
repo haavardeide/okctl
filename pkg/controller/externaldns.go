@@ -6,6 +6,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/client"
 )
 
+// ExternalDNSResourceState contains runtime data needed in Reconsile()
 type ExternalDNSResourceState struct {
 	HostedZoneID string
 	Domain string
@@ -17,6 +18,7 @@ type externalDNSReconsiler struct {
 	client client.ExternalDNSService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *externalDNSReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -49,6 +51,7 @@ func (z *externalDNSReconsiler) Reconsile(node *SynchronizationNode) (*Reconsila
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewExternalDNSReconsiler creates a new reconsiler for the ExternalDNS resource
 func NewExternalDNSReconsiler(client client.ExternalDNSService) *externalDNSReconsiler {
 	return &externalDNSReconsiler{
 		client: client,

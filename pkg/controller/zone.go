@@ -7,6 +7,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/client"
 )
 
+// HostedZoneMetadata contains data extracted from the desired state
 type HostedZoneMetadata struct {
 	Domain string
 }
@@ -17,6 +18,7 @@ type zoneReconsiler struct {
 	client client.DomainService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *zoneReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -50,6 +52,7 @@ func (z *zoneReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationRes
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewZoneReconsiler creates a new reconsiler for the Hosted Zone resource
 func NewZoneReconsiler(client client.DomainService) *zoneReconsiler {
 	return &zoneReconsiler{
 		client: client,

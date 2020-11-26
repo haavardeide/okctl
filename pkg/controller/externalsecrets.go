@@ -11,6 +11,7 @@ type externalSecretsReconsiler struct {
 	client client.ExternalSecretsService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *externalSecretsReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -35,6 +36,7 @@ func (z *externalSecretsReconsiler) Reconsile(node *SynchronizationNode) (*Recon
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewExternalSecretsReconsiler creates a new reconsiler for the ExternalSecrets resource
 func NewExternalSecretsReconsiler(client client.ExternalSecretsService) *externalSecretsReconsiler {
 	return &externalSecretsReconsiler{
 		client: client,

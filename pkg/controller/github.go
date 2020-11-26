@@ -1,4 +1,3 @@
-
 package controller
 
 import (
@@ -9,14 +8,18 @@ import (
 	"github.com/oslokommune/okctl/pkg/config/state"
 )
 
+// GithubMetadata contains data from the desired state
 type GithubMetadata struct {
 	Organization string
 	Repository string
 }
 
+// GithubGetter knows how to get the current state Github
 type GithubGetter func() state.Github
+// GithubSetter knows how to save a state.Github
 type GithubSetter func(github state.Github) (*store.Report, error)
 
+// GithubResourceState contains runtime data needed in Reconsile()
 type GithubResourceState struct {
 	Getter GithubGetter
 	Saver GithubSetter
@@ -28,6 +31,7 @@ type githubReconsiler struct {
 	client client.GithubService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *githubReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -69,6 +73,7 @@ func (z *githubReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationR
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewGithubReconsiler creates a new reconsiler for the Github resource
 func NewGithubReconsiler(client client.GithubService) *githubReconsiler {
 	return &githubReconsiler{
 		client: client,

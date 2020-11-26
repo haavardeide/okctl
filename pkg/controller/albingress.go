@@ -6,6 +6,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/client"
 )
 
+// AlbIngressControllerResourceState contains runtime data necessary for Reconsile to do its job
 type AlbIngressControllerResourceState struct {
 	VpcID string
 }
@@ -46,6 +47,7 @@ func (z *albIngressReconsiler) Reconsile(node *SynchronizationNode) (*Reconsilat
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewALBIngressReconsiler creates a new reconsiler for the ALB Ingress controller resource
 func NewALBIngressReconsiler(client client.ALBIngressControllerService) *albIngressReconsiler {
 	return &albIngressReconsiler{
 		client: client,

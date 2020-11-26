@@ -1,4 +1,3 @@
-
 package controller
 
 import (
@@ -9,6 +8,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/client"
 )
 
+// IdentityManagerResourceState contains runtime data needed in Reconsile()
 type IdentityManagerResourceState struct {
 	HostedZoneID string
 	Domain string
@@ -20,6 +20,7 @@ type identityManagerReconsiler struct {
 	client client.IdentityManagerService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *identityManagerReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -57,6 +58,7 @@ func (z *identityManagerReconsiler) Reconsile(node *SynchronizationNode) (*Recon
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewIdentityManagerReconsiler creates a new reconsiler for the Identity Manager resource
 func NewIdentityManagerReconsiler(client client.IdentityManagerService) *identityManagerReconsiler {
 	return &identityManagerReconsiler{
 		client: client,

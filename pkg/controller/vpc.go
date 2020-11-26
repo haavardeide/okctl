@@ -7,6 +7,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/client"
 )
 
+// VPCMetadata contains data extracted from the desired state
 type VPCMetadata struct {
 	Cidr string
 	HighAvailability bool
@@ -18,6 +19,7 @@ type vpcReconsiler struct {
 	client client.VPCService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *vpcReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -51,9 +53,9 @@ func (z *vpcReconsiler) Reconsile(node *SynchronizationNode) (*ReconsilationResu
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewVPCReconsiler creates a new reconsiler for the VPC resource
 func NewVPCReconsiler(client client.VPCService) *vpcReconsiler {
 	return &vpcReconsiler{
 		client: client,
 	}
 }
-

@@ -7,6 +7,7 @@ import (
 	"github.com/oslokommune/okctl/pkg/client"
 )
 
+// ClusterResourceState contains runtime data needed in Reconsile()
 type ClusterResourceState struct {
 	VPC api.Vpc
 }
@@ -17,6 +18,7 @@ type clusterReconsiler struct {
 	client client.ClusterService
 }
 
+// SetCommonMetadata saves common metadata for use in Reconsile()
 func (z *clusterReconsiler) SetCommonMetadata(metadata *CommonMetadata) {
 	z.commonMetadata = metadata
 }
@@ -50,6 +52,7 @@ func (z *clusterReconsiler) Reconsile(node *SynchronizationNode) (*Reconsilation
 	return &ReconsilationResult{Requeue: false}, nil
 }
 
+// NewClusterReconsiler creates a new reconsiler for the cluster resource
 func NewClusterReconsiler(client client.ClusterService) *clusterReconsiler {
 	return &clusterReconsiler{
 		client: client,
