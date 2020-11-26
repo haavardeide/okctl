@@ -38,7 +38,7 @@ func (z *githubReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetada
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *githubReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *githubReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	metadata, ok := node.Metadata.(GithubMetadata)
 	if !ok {
 		return nil, errors.New("unable to cast Github metadata")
@@ -50,7 +50,7 @@ func (z *githubReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*R
 	}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		_, err := z.client.ReadyGithubInfrastructureRepositoryWithoutUserinput(z.commonMetadata.Ctx, client.ReadyGithubInfrastructureRepositoryOpts{
 			ID:           z.commonMetadata.Id,
 			Organisation: metadata.Organization,
@@ -67,7 +67,7 @@ func (z *githubReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*R
 		if err != nil {
 		    return nil, fmt.Errorf("error saving github: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		return nil, errors.New("deleting Github resource is not implemented")
 	}
 

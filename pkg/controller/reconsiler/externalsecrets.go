@@ -18,15 +18,15 @@ func (z *externalSecretsReconsiler) SetCommonMetadata(metadata *resourcetree.Com
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *externalSecretsReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *externalSecretsReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		_, err := z.client.CreateExternalSecrets(z.commonMetadata.Ctx, client.CreateExternalSecretsOpts{ID: z.commonMetadata.Id})
 		
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating external secrets: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		err := z.client.DeleteExternalSecrets(z.commonMetadata.Ctx, z.commonMetadata.Id)
 
 		if err != nil {

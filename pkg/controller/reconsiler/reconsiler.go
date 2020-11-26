@@ -14,7 +14,7 @@ type ReconsilationResult struct {
 
 type Reconsiler interface {
 	// Reconsile knows how to ensure the desired state is achieved
-	Reconsile(*resourcetree.SynchronizationNode) (*ReconsilationResult, error)
+	Reconsile(*resourcetree.ResourceNode) (*ReconsilationResult, error)
 	SetCommonMetadata(metadata *resourcetree.CommonMetadata)
 }
 
@@ -23,18 +23,18 @@ ReconsilerManager provides a simpler way to organize reconsilers
 */
 type ReconsilerManager struct {
 	commonMetadata *resourcetree.CommonMetadata
-	Reconsilers map[resourcetree.SynchronizationNodeType]Reconsiler
+	Reconsilers map[resourcetree.ResourceNodeType]Reconsiler
 }
 
 // AddReconsiler makes a Reconsiler available in the ReconsilerManager
-func (manager *ReconsilerManager) AddReconsiler(key resourcetree.SynchronizationNodeType, Reconsiler Reconsiler) {
+func (manager *ReconsilerManager) AddReconsiler(key resourcetree.ResourceNodeType, Reconsiler Reconsiler) {
 	Reconsiler.SetCommonMetadata(manager.commonMetadata)
 	
 	manager.Reconsilers[key] = Reconsiler
 }
 
 // Reconsile chooses the correct reconsiler to use based on a nodes type
-func (manager *ReconsilerManager) Reconsile(node *resourcetree.SynchronizationNode)	(*ReconsilationResult, error)  {
+func (manager *ReconsilerManager) Reconsile(node *resourcetree.ResourceNode)	(*ReconsilationResult, error)  {
 	node.RefreshState()
 	
 	return manager.Reconsilers[node.Type].Reconsile(node)
@@ -44,8 +44,8 @@ func (manager *ReconsilerManager) Reconsile(node *resourcetree.SynchronizationNo
 func NewReconsilerManager(metadata *resourcetree.CommonMetadata) *ReconsilerManager {
 	return &ReconsilerManager{
 		commonMetadata: metadata,
-		Reconsilers: map[resourcetree.SynchronizationNodeType]Reconsiler{
-			resourcetree.SynchronizationNodeTypeNoop: &NoopReconsiler{},
+		Reconsilers: map[resourcetree.ResourceNodeType]Reconsiler{
+			resourcetree.ResourceNodeTypeGroup: &NoopReconsiler{},
 		},
 	}
 }

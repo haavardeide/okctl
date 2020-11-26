@@ -23,14 +23,14 @@ func (z *albIngressReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMe
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *albIngressReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *albIngressReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	state, ok := node.ResourceState.(AlbIngressControllerResourceState)
 	if !ok {
 	    return nil, errors.New("error casting ALB Ingress Controller state")
 	}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		_, err := z.client.CreateALBIngressController(z.commonMetadata.Ctx, client.CreateALBIngressControllerOpts{
 			ID:    z.commonMetadata.Id,
 			VPCID: state.VpcID,
@@ -38,7 +38,7 @@ func (z *albIngressReconsiler) Reconsile(node *resourcetree.SynchronizationNode)
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating ALB Ingress controller: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		err := z.client.DeleteALBIngressController(z.commonMetadata.Ctx, z.commonMetadata.Id)
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting ALB Ingress controller: %w", err)

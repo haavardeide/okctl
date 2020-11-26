@@ -26,14 +26,14 @@ func (z *vpcReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata)
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *vpcReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *vpcReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	metadata, ok := node.Metadata.(VPCMetadata)
 	if !ok {
 	    return nil, errors.New("unable to cast VPC metadata")
 	}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		_, err := z.client.CreateVpc(z.commonMetadata.Ctx, api.CreateVpcOpts{
 			ID:      z.commonMetadata.Id,
 			Cidr:    metadata.Cidr,
@@ -42,7 +42,7 @@ func (z *vpcReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*Reco
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating vpc: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		err := z.client.DeleteVpc(z.commonMetadata.Ctx, api.DeleteVpcOpts{ ID: z.commonMetadata.Id })
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting vpc: %w", err)

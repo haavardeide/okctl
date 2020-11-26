@@ -20,7 +20,7 @@ type NoopReconsiler struct {}
 func (receiver *NoopReconsiler) SetCommonMetadata(_ *resourcetree.CommonMetadata) {}
 
 // Reconsile knows how to create, update and delete the relevant resource
-func (receiver *NoopReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (receiver *NoopReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	//metadata, ok := node.Metadata.(noopMetadata)
 	//if !ok {
 	//	return nil, errors.New("could not cast Noop metadata")
@@ -32,9 +32,9 @@ func (receiver *NoopReconsiler) Reconsile(node *resourcetree.SynchronizationNode
 	//}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		// Create a resource
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		// Delete a resource
 	}
 

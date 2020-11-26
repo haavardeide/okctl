@@ -7,18 +7,16 @@ import (
 )
 
 // Synchronize knows how to discover differences between desired and actual state and rectify them
-func Synchronize(reconsilerManager *reconsiler.ReconsilerManager, desiredGraph *resourcetree.SynchronizationNode, currentGraph *resourcetree.SynchronizationNode) error {
-	diffGraph := *desiredGraph
+func Synchronize(reconsilerManager *reconsiler.ReconsilerManager, desiredTree *resourcetree.ResourceNode, currentTree *resourcetree.ResourceNode) error {
+	diffGraph := *desiredTree
 
-	//desiredGraph.Apply(currentGraph)
-	diffGraph.ApplyFunction(ApplyCurrentState, currentGraph)
-	//currentGraph.Apply(desiredGraph)
+	diffGraph.ApplyFunction(applyCurrentState, currentTree)
 	
 	return handleNode(reconsilerManager, &diffGraph)
 }
 
-// handleNode knows how to run Reconsile() on every node of a graph
-func handleNode(reconsilerManager *reconsiler.ReconsilerManager, currentNode *resourcetree.SynchronizationNode) error {
+// handleNode knows how to run Reconsile() on every node of a ResourceNode tree
+func handleNode(reconsilerManager *reconsiler.ReconsilerManager, currentNode *resourcetree.ResourceNode) error {
 	_, err := reconsilerManager.Reconsile(currentNode)
 	if err != nil {
 	    return fmt.Errorf("error reconsiling node: %w", err)
@@ -34,9 +32,11 @@ func handleNode(reconsilerManager *reconsiler.ReconsilerManager, currentNode *re
 	return nil
 }
 
-func ApplyCurrentState(receiver *resourcetree.SynchronizationNode, target *resourcetree.SynchronizationNode) {
+// applyCurrentState knows how to apply the current state on a desired state to produce a diff that knows which
+// resources to create, and which resources is already existing
+func applyCurrentState(receiver *resourcetree.ResourceNode, target *resourcetree.ResourceNode) {
 	if receiver.State == target.State {
-		receiver.State = resourcetree.SynchronizationNodeStateNoop
+		receiver.State = resourcetree.ResourceNodeStateNoop
 	}
 }
 

@@ -40,14 +40,14 @@ Dependent on:
 - Cognito user pool
 - Primary hosted Zone
  */
-func (z *argocdReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *argocdReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	resourceState, ok := node.ResourceState.(ArgocdResourceState)
 	if !ok {
 		return nil, errors.New("error casting argocd resource resourceState")
 	}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		_, err := z.client.CreateArgoCD(z.commonMetadata.Ctx, client.CreateArgoCDOpts{
 			ID:                 z.commonMetadata.Id,
 			Domain:             resourceState.HostedZone.Domain,
@@ -61,7 +61,7 @@ func (z *argocdReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*R
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating argocd: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		return nil, errors.New("deletion of the argocd resource is not implemented")
 	}
 

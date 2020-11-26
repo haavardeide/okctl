@@ -25,14 +25,14 @@ func (z *clusterReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetad
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *clusterReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *clusterReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	resourceState, ok := node.ResourceState.(ClusterResourceState)
 	if !ok {
 		return nil, errors.New("error casting cluster resourceState")
 	}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		_, err := z.client.CreateCluster(z.commonMetadata.Ctx, api.ClusterCreateOpts{
 			ID:                z.commonMetadata.Id,
 			Cidr:              resourceState.VPC.Cidr,
@@ -43,7 +43,7 @@ func (z *clusterReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating cluster: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		err := z.client.DeleteCluster(z.commonMetadata.Ctx, api.ClusterDeleteOpts{ID: z.commonMetadata.Id})
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting cluster: %w", err)

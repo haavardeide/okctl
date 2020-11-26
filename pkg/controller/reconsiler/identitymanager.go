@@ -32,14 +32,14 @@ Requires:
 - Hosted Zone
 - Nameservers setup
  */
-func (z *identityManagerReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *identityManagerReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	resourceState, ok := node.ResourceState.(IdentityManagerResourceState)
 	if !ok {
 		return nil, errors.New("unable to cast identity manager resourceState")
 	}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		authDomain := fmt.Sprintf("auth.%s", resourceState.Domain)
 		authFQDN := dns.Fqdn(authDomain)
 		
@@ -52,7 +52,7 @@ func (z *identityManagerReconsiler) Reconsile(node *resourcetree.Synchronization
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating identity manager resource: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		return nil, errors.New("deleting identity manager resource is not implemented")
 	}
 

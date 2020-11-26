@@ -51,67 +51,67 @@ func NewCreateCurrentStateGraphOpts(fs *afero.Afero, outputDir string) (*existin
 }
 
 // CreateCurrentStateGraph knows how to generate a graph based on the current state
-func CreateCurrentStateGraph(opts *existingServices) (root *resourcetree.SynchronizationNode) {
-	root = createNode(nil, resourcetree.SynchronizationNodeTypeNoop, true)
+func CreateCurrentStateGraph(opts *existingServices) (root *resourcetree.ResourceNode) {
+	root = createNode(nil, resourcetree.ResourceNodeTypeGroup, true)
 	
 	var (
 		vpcNode,
-		clusterNode *resourcetree.SynchronizationNode
+		clusterNode *resourcetree.ResourceNode
 	)
 	
-	createNode(root, resourcetree.SynchronizationNodeTypeZone, opts.hasPrimaryHostedZone)
-	createNode(root, resourcetree.SynchronizationNodeTypeGithub, false)
-	vpcNode = createNode(root, resourcetree.SynchronizationNodeTypeVPC, opts.hasVPC)
+	createNode(root, resourcetree.ResourceNodeTypeZone, opts.hasPrimaryHostedZone)
+	createNode(root, resourcetree.ResourceNodeTypeGithub, false)
+	vpcNode = createNode(root, resourcetree.ResourceNodeTypeVPC, opts.hasVPC)
 
-	clusterNode = createNode(vpcNode, resourcetree.SynchronizationNodeTypeCluster, opts.hasCluster)
+	clusterNode = createNode(vpcNode, resourcetree.ResourceNodeTypeCluster, opts.hasCluster)
 
-	createNode(clusterNode, resourcetree.SynchronizationNodeTypeExternalSecrets, opts.hasExternalSecrets)
-	createNode(clusterNode, resourcetree.SynchronizationNodeTypeALBIngress, opts.hasALBIngressController)
-	createNode(clusterNode, resourcetree.SynchronizationNodeTypeExternalDNS, opts.hasExternalDNS)
-	//createNode(clusterNode, resourcetree.SynchronizationNodeTypeIdentityManager, opts.hasIdentityManager)
+	createNode(clusterNode, resourcetree.ResourceNodeTypeExternalSecrets, opts.hasExternalSecrets)
+	createNode(clusterNode, resourcetree.ResourceNodeTypeALBIngress, opts.hasALBIngressController)
+	createNode(clusterNode, resourcetree.ResourceNodeTypeExternalDNS, opts.hasExternalDNS)
+	//createNode(clusterNode, resourcetree.ResourceNodeTypeIdentityManager, opts.hasIdentityManager)
 
 	return root
 }
 
 // CreateDesiredStateGraph knows how to create a graph based on a cluster declaration
-func CreateDesiredStateGraph(cluster *v1alpha1.Cluster) (root *resourcetree.SynchronizationNode) {
-	root = createNode(nil, resourcetree.SynchronizationNodeTypeNoop, true)
+func CreateDesiredStateGraph(cluster *v1alpha1.Cluster) (root *resourcetree.ResourceNode) {
+	root = createNode(nil, resourcetree.ResourceNodeTypeGroup, true)
 
 	var (
 		vpcNode,
-		clusterNode *resourcetree.SynchronizationNode
+		clusterNode *resourcetree.ResourceNode
 	)
 	
 	if len(cluster.DNSZones) > 0 {
 		for range cluster.DNSZones { // TODO: not gonna work. More than one will generate multiple primaries
-			createNode(root, resourcetree.SynchronizationNodeTypeZone, true)
+			createNode(root, resourcetree.ResourceNodeTypeZone, true)
 		}
 	}
 
-	createNode(root, resourcetree.SynchronizationNodeTypeGithub, true)
-	vpcNode = createNode(root, resourcetree.SynchronizationNodeTypeVPC, true)
+	createNode(root, resourcetree.ResourceNodeTypeGithub, true)
+	vpcNode = createNode(root, resourcetree.ResourceNodeTypeVPC, true)
 
-	clusterNode = createNode(vpcNode, resourcetree.SynchronizationNodeTypeCluster, true)
+	clusterNode = createNode(vpcNode, resourcetree.ResourceNodeTypeCluster, true)
 
-	createNode(clusterNode, resourcetree.SynchronizationNodeTypeExternalSecrets, cluster.Integrations.ExternalSecrets)
-	createNode(clusterNode, resourcetree.SynchronizationNodeTypeALBIngress, cluster.Integrations.ALBIngressController)
-	createNode(clusterNode, resourcetree.SynchronizationNodeTypeExternalDNS, cluster.Integrations.ExternalDNS) // TODO: Needs to be dependend on primary hosted zone
-	//createNode(clusterNode, SynchronizationNodeTypeIdentityManager, cluster.Integrations.Cognito) // TODO: ArgoCD is dependent on cognito, but i dont think cognito is dependent on anything other than hosted zone
+	createNode(clusterNode, resourcetree.ResourceNodeTypeExternalSecrets, cluster.Integrations.ExternalSecrets)
+	createNode(clusterNode, resourcetree.ResourceNodeTypeALBIngress, cluster.Integrations.ALBIngressController)
+	createNode(clusterNode, resourcetree.ResourceNodeTypeExternalDNS, cluster.Integrations.ExternalDNS) // TODO: Needs to be dependend on primary hosted zone
+	//createNode(clusterNode, ResourceNodeTypeIdentityManager, cluster.Integrations.Cognito) // TODO: ArgoCD is dependent on cognito, but i dont think cognito is dependent on anything other than hosted zone
 
 	return root
 }
 
-func ApplyDesiredStateMetadata(graph *resourcetree.SynchronizationNode, cluster *v1alpha1.Cluster, repoDir string) error {
+func ApplyDesiredStateMetadata(graph *resourcetree.ResourceNode, cluster *v1alpha1.Cluster, repoDir string) error {
 	// TODO: Fetch cluster first and fetch hosted zone from cluster to ensure primary hosted zone is fetched after
 	// moving primary hosted zone
-	primaryHostedZoneNode := graph.GetNode(&resourcetree.SynchronizationNode{ Type: resourcetree.SynchronizationNodeTypeZone })
+	primaryHostedZoneNode := graph.GetNode(&resourcetree.ResourceNode{ Type: resourcetree.ResourceNodeTypeZone})
 	if primaryHostedZoneNode == nil {
 		return errors.New("expected primary hosted zone node was not found")
 	}
 
 	primaryHostedZoneNode.Metadata = reconsiler.HostedZoneMetadata{Domain: cluster.DNSZones[0].ParentDomain}
 
-	vpcNode := graph.GetNode(&resourcetree.SynchronizationNode{ Type: resourcetree.SynchronizationNodeTypeVPC })
+	vpcNode := graph.GetNode(&resourcetree.ResourceNode{ Type: resourcetree.ResourceNodeTypeVPC})
 	if vpcNode == nil {
 		return errors.New("expected vpc node was not found")
 	}
@@ -121,7 +121,7 @@ func ApplyDesiredStateMetadata(graph *resourcetree.SynchronizationNode, cluster 
 		HighAvailability: cluster.VPC.HighAvailability,
 	}
 	
-	githubNode := graph.GetNode(&resourcetree.SynchronizationNode{ Type: resourcetree.SynchronizationNodeTypeGithub })
+	githubNode := graph.GetNode(&resourcetree.ResourceNode{ Type: resourcetree.ResourceNodeTypeGithub})
 	if githubNode != nil { // TODO: A Github is required, so this should probably break something if not existing
 		repo, err := git.GithubRepoFullName(cluster.Github.Organisation, repoDir)
 		if err != nil {
@@ -134,7 +134,7 @@ func ApplyDesiredStateMetadata(graph *resourcetree.SynchronizationNode, cluster 
 		}
 	}
 	
-	argocdNode := graph.GetNode(&resourcetree.SynchronizationNode{ Type: resourcetree.SynchronizationNodeTypeArgoCD })
+	argocdNode := graph.GetNode(&resourcetree.ResourceNode{ Type: resourcetree.ResourceNodeTypeArgoCD})
 	if argocdNode != nil {
 		argocdNode.Metadata = reconsiler.ArgocdMetadata{Organization: cluster.Github.Organisation }
 	}
@@ -143,16 +143,16 @@ func ApplyDesiredStateMetadata(graph *resourcetree.SynchronizationNode, cluster 
 	return nil
 }
 
-func createNode(parent *resourcetree.SynchronizationNode, nodeType resourcetree.SynchronizationNodeType, present bool) (child *resourcetree.SynchronizationNode) {
-	child = &resourcetree.SynchronizationNode{
+func createNode(parent *resourcetree.ResourceNode, nodeType resourcetree.ResourceNodeType, present bool) (child *resourcetree.ResourceNode) {
+	child = &resourcetree.ResourceNode{
 		Type:           nodeType,
-		Children:       make([]*resourcetree.SynchronizationNode, 0),
+		Children:       make([]*resourcetree.ResourceNode, 0),
 	}
 	
 	if present {
-		child.State = resourcetree.SynchronizationNodeStatePresent
+		child.State = resourcetree.ResourceNodeStatePresent
 	} else {
-		child.State = resourcetree.SynchronizationNodeStateAbsent
+		child.State = resourcetree.ResourceNodeStateAbsent
 	}
 	
 	if parent != nil {
@@ -179,7 +179,7 @@ func getVpcState(fs *afero.Afero, outputDir string) api.Vpc {
 
 type StringFetcher func() string
 func CreateClusterStateRefresher(fs *afero.Afero, outputDir string, cidrFn StringFetcher) resourcetree.StateRefreshFn {
-	return func(node *resourcetree.SynchronizationNode) {
+	return func(node *resourcetree.ResourceNode) {
 		vpc := getVpcState(fs, outputDir)
 		
 		vpc.Cidr = cidrFn()
@@ -189,7 +189,7 @@ func CreateClusterStateRefresher(fs *afero.Afero, outputDir string, cidrFn Strin
 }
 
 func CreateALBIngressControllerRefresher(fs *afero.Afero, outputDir string) resourcetree.StateRefreshFn {
-	return func(node *resourcetree.SynchronizationNode) {
+	return func(node *resourcetree.ResourceNode) {
 		vpc := getVpcState(fs, outputDir)
 		
 		node.ResourceState = reconsiler.AlbIngressControllerResourceState{VpcID: vpc.VpcID}
@@ -197,7 +197,7 @@ func CreateALBIngressControllerRefresher(fs *afero.Afero, outputDir string) reso
 }
 
 func CreateExternalDNSStateRefresher(domainFetcher StringFetcher, hostedZoneIDFetcher StringFetcher) resourcetree.StateRefreshFn {
-	return func(node *resourcetree.SynchronizationNode) {
+	return func(node *resourcetree.ResourceNode) {
 		node.ResourceState = reconsiler.ExternalDNSResourceState{
 			HostedZoneID: hostedZoneIDFetcher(),
 			Domain:       domainFetcher(),
@@ -206,7 +206,7 @@ func CreateExternalDNSStateRefresher(domainFetcher StringFetcher, hostedZoneIDFe
 }
 
 func CreateIdentityManagerRefresher(domainFetcher StringFetcher, hostedZoneIDFetcher StringFetcher) resourcetree.StateRefreshFn {
-	return func(node *resourcetree.SynchronizationNode) {
+	return func(node *resourcetree.ResourceNode) {
 		node.ResourceState = reconsiler.IdentityManagerResourceState{
 			HostedZoneID: hostedZoneIDFetcher(),
 			Domain:       domainFetcher(),
@@ -215,7 +215,7 @@ func CreateIdentityManagerRefresher(domainFetcher StringFetcher, hostedZoneIDFet
 }
 
 func CreateGithubStateRefresher(ghGetter reconsiler.GithubGetter, ghSetter reconsiler.GithubSetter) resourcetree.StateRefreshFn {
-	return func(node *resourcetree.SynchronizationNode) {
+	return func(node *resourcetree.ResourceNode) {
 		node.ResourceState = reconsiler.GithubResourceState{
 			Getter: ghGetter,
 			Saver: ghSetter,
@@ -225,7 +225,7 @@ func CreateGithubStateRefresher(ghGetter reconsiler.GithubGetter, ghSetter recon
 
 type HostedZoneFetcher func() *state.HostedZone
 func CreateArgocdStateRefresher(hostedZoneFetcher HostedZoneFetcher) resourcetree.StateRefreshFn {
-	return func(node *resourcetree.SynchronizationNode) {
+	return func(node *resourcetree.ResourceNode) {
 		node.ResourceState = reconsiler.ArgocdResourceState{
 			HostedZone: hostedZoneFetcher(),
 			Repository: nil,

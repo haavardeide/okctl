@@ -25,14 +25,14 @@ func (z *zoneReconsiler) SetCommonMetadata(metadata *resourcetree.CommonMetadata
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *zoneReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *zoneReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	metadata, ok := node.Metadata.(HostedZoneMetadata)
 	if !ok {
 		return nil, errors.New("error casting HostedZone metadata")
 	}
 	
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		fqdn := dns.Fqdn(metadata.Domain)
 
 		_, err := z.client.CreatePrimaryHostedZoneWithoutUserinput(z.commonMetadata.Ctx, client.CreatePrimaryHostedZoneOpts{
@@ -43,7 +43,7 @@ func (z *zoneReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*Rec
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating hosted zone: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		err := z.client.DeletePrimaryHostedZone(z.commonMetadata.Ctx, client.DeletePrimaryHostedZoneOpts{ID: z.commonMetadata.Id})
 		if err != nil {
 		    return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting hosted zone: %w", err)

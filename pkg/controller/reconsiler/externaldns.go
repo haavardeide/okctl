@@ -25,14 +25,14 @@ func (z *externalDNSReconsiler) SetCommonMetadata(metadata *resourcetree.CommonM
 }
 
 // Reconsile knows how to ensure the desired state is achieved
-func (z *externalDNSReconsiler) Reconsile(node *resourcetree.SynchronizationNode) (*ReconsilationResult, error) {
+func (z *externalDNSReconsiler) Reconsile(node *resourcetree.ResourceNode) (*ReconsilationResult, error) {
 	resourceState, ok := node.ResourceState.(ExternalDNSResourceState)
 	if !ok {
 		return nil, errors.New("error casting External DNS resourceState")
 	}
 
 	switch node.State {
-	case resourcetree.SynchronizationNodeStatePresent:
+	case resourcetree.ResourceNodeStatePresent:
 		_, err := z.client.CreateExternalDNS(z.commonMetadata.Ctx, client.CreateExternalDNSOpts{
 			ID:           z.commonMetadata.Id,
 			HostedZoneID: resourceState.HostedZoneID,
@@ -41,7 +41,7 @@ func (z *externalDNSReconsiler) Reconsile(node *resourcetree.SynchronizationNode
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error creating external DNS: %w", err)
 		}
-	case resourcetree.SynchronizationNodeStateAbsent:
+	case resourcetree.ResourceNodeStateAbsent:
 		err := z.client.DeleteExternalDNS(z.commonMetadata.Ctx, z.commonMetadata.Id)
 		if err != nil {
 			return &ReconsilationResult{Requeue: true}, fmt.Errorf("error deleting external DNS: %w", err)
