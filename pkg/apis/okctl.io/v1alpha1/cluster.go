@@ -25,6 +25,11 @@ type Cluster struct {
 	// this cluster will integrate with.
 	Github ClusterGithub `json:"github"`
 
+	// PrimaryDNSZone defines the main primary zone to associate with this
+	// cluster. This will be the zone that we will use to create domains
+	// for auth, ArgoCD, etc.
+	PrimaryDNSZone ClusterDNSZone `json:"primaryDNZZone"`
+
 	// VPC defines how we configure the VPC for the cluster
 	// +optional
 	VPC *ClusterVPC `json:"vpc,omitempty"`

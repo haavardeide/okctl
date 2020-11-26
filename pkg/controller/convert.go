@@ -56,10 +56,11 @@ func CreateCurrentStateGraph(opts *existingServices) (root *resourcetree.Resourc
 		vpcNode,
 		clusterNode *resourcetree.ResourceNode
 	)
-	
-	createNode(root, resourcetree.ResourceNodeTypeZone, opts.hasPrimaryHostedZone)
+
 	createNode(root, resourcetree.ResourceNodeTypeGithub, false)
-	vpcNode = createNode(root, resourcetree.ResourceNodeTypeVPC, opts.hasVPC)
+
+	primaryHostedZoneNode := createNode(root, resourcetree.ResourceNodeTypeZone, opts.hasPrimaryHostedZone)
+	vpcNode = createNode(primaryHostedZoneNode, resourcetree.ResourceNodeTypeVPC, opts.hasVPC)
 
 	clusterNode = createNode(vpcNode, resourcetree.ResourceNodeTypeCluster, opts.hasCluster)
 
@@ -78,35 +79,29 @@ func CreateDesiredStateGraph(cluster *v1alpha1.Cluster) (root *resourcetree.Reso
 		vpcNode,
 		clusterNode *resourcetree.ResourceNode
 	)
-	
-	if len(cluster.DNSZones) > 0 {
-		for range cluster.DNSZones { // TODO: not gonna work. More than one will generate multiple primaries
-			createNode(root, resourcetree.ResourceNodeTypeZone, true)
-		}
-	}
 
 	createNode(root, resourcetree.ResourceNodeTypeGithub, true)
-	vpcNode = createNode(root, resourcetree.ResourceNodeTypeVPC, true)
+
+	primaryHostedZoneNode := createNode(root, resourcetree.ResourceNodeTypeZone, true)
+	vpcNode = createNode(primaryHostedZoneNode, resourcetree.ResourceNodeTypeVPC, true)
 
 	clusterNode = createNode(vpcNode, resourcetree.ResourceNodeTypeCluster, true)
 
 	createNode(clusterNode, resourcetree.ResourceNodeTypeExternalSecrets, cluster.Integrations.ExternalSecrets)
 	createNode(clusterNode, resourcetree.ResourceNodeTypeALBIngress, cluster.Integrations.ALBIngressController)
-	createNode(clusterNode, resourcetree.ResourceNodeTypeExternalDNS, cluster.Integrations.ExternalDNS) // TODO: Needs to be dependent on primary hosted zone
+	createNode(clusterNode, resourcetree.ResourceNodeTypeExternalDNS, cluster.Integrations.ExternalDNS)
 
 	return root
 }
 
 // ApplyDesiredStateMetadata applies metadata from a cluster definition to the nodes
 func ApplyDesiredStateMetadata(graph *resourcetree.ResourceNode, cluster *v1alpha1.Cluster, repoDir string) error {
-	// TODO: Fetch cluster first and fetch hosted zone from cluster to ensure primary hosted zone is fetched after
-	// moving primary hosted zone
 	primaryHostedZoneNode := graph.GetNode(&resourcetree.ResourceNode{ Type: resourcetree.ResourceNodeTypeZone})
 	if primaryHostedZoneNode == nil {
 		return errors.New("expected primary hosted zone node was not found")
 	}
 
-	primaryHostedZoneNode.Metadata = reconsiler.HostedZoneMetadata{Domain: cluster.DNSZones[0].ParentDomain}
+	primaryHostedZoneNode.Metadata = reconsiler.HostedZoneMetadata{Domain: cluster.PrimaryDNSZone.ParentDomain}
 
 	vpcNode := graph.GetNode(&resourcetree.ResourceNode{ Type: resourcetree.ResourceNodeTypeVPC})
 	if vpcNode == nil {
