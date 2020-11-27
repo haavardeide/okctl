@@ -27,6 +27,7 @@ type applyClusterOpts struct {
 	Declaration *v1alpha1.Cluster
 }
 
+// Validate ensures the applyClusterOpts contains the right information
 func (o *applyClusterOpts) Validate() error {
 	return validation.ValidateStruct(o,
 		validation.Field(&o.File, validation.Required),
@@ -47,7 +48,7 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error inferring cluster: %w", err)
 			}
-
+			
 			err = loadNoUserInputUserData(o, cmd)
 			if err != nil {
 				return fmt.Errorf("failed to load application data: %w", err)
@@ -72,6 +73,11 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) (err error) {
+			err = opts.Declaration.Validate()
+			if err != nil {
+			    return fmt.Errorf("error validating cluster declaration: %w", err)
+			}
+
 			id := api.ID{
 				Region:       opts.Declaration.Metadata.Region,
 				AWSAccountID: strconv.Itoa(opts.Declaration.Metadata.AccountID),
@@ -165,6 +171,8 @@ func inferClusterFromStdinOrFile(stdin io.Reader, path string) (*v1alpha1.Cluste
 		buffer bytes.Buffer
 		cluster v1alpha1.Cluster
 	)
+	
+	cluster = v1alpha1.NewDefaultCluster("", "", "", "", "", 0)
 	
 	_, err = io.Copy(&buffer, inputReader)
 	if err != nil {

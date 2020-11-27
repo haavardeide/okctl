@@ -1,7 +1,11 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"regexp"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -45,6 +49,19 @@ type Cluster struct {
 	DNSZones []ClusterDNSZone `json:"dnsZones,omitempty"`
 }
 
+// Validate calls each members Validate function
+func (c Cluster) Validate() error {
+	result := validation.ValidateStruct(&c,
+		validation.Field(&c.Metadata),
+		validation.Field(&c.Github),
+		validation.Field(&c.PrimaryDNSZone),
+		validation.Field(&c.VPC),
+		validation.Field(&c.Integrations),
+	)
+	
+	return result
+}
+
 // ClusterMeta describes a unique cluster
 type ClusterMeta struct {
 	// Name is a descriptive value given to the cluster, e.g., the name
@@ -64,10 +81,20 @@ type ClusterMeta struct {
 	AccountID int `json:"accountID"`
 }
 
+// Validate ensures ClusterMeta contains the right information
+func (receiver ClusterMeta) Validate() error {
+	return validation.ValidateStruct(&receiver,
+		validation.Field(&receiver.Name, validation.Required),
+		validation.Field(&receiver.Environment, validation.Required, validation.Match(regexp.MustCompile("^[a-zA-Z]{3,64}$")).Error("must consist of 3-64 characters (a-z, A-Z)")),
+		validation.Field(&receiver.Region, validation.Required, validation.In("eu-west-1")),
+		validation.Field(&receiver.AccountID, validation.Required, validation.Match(regexp.MustCompile("^[0-9]{12}$")).Error("must consist of 12 digits")),
+	)
+}
+
 // String returns a unique identifier for a cluster
 // Not sure about this..
-func (c *ClusterMeta) String() string {
-	return fmt.Sprintf("%s-%s.%s.okctl.io/%d", c.Name, c.Environment, c.Region, c.AccountID)
+func (receiver *ClusterMeta) String() string {
+	return fmt.Sprintf("%s-%s.%s.okctl.io/%d", receiver.Name, receiver.Environment, receiver.Region, receiver.AccountID)
 }
 
 // ClusterVPC is a definition of the VPC we create for the EKS cluster
@@ -85,6 +112,14 @@ type ClusterVPC struct {
 	HighAvailability bool `json:"highAvailability,omitempty"`
 }
 
+// Validate ensures ClusterVPC contains the right information
+func (c ClusterVPC) Validate() error {
+	return validation.ValidateStruct(&c,
+		validation.Field(&c.CIDR, validation.Required),
+		validation.Field(&c.HighAvailability, validation.Required),
+	)
+}
+
 // ClusterDNSZone is analogous to a DNS Zone file (https://en.wikipedia.org/wiki/Zone_file).
 // A DNS Zone represents a subset, in form of a single parent domain, of the hierarchical
 // domain name structure. In AWS, we map this data to a Route53 HostedZone.
@@ -97,6 +132,13 @@ type ClusterDNSZone struct {
 	// or create a new one. If set to true, we will not attempt to create a
 	// new DNS zone.
 	ReuseExisting bool `json:"managedZone"`
+}
+
+func (c ClusterDNSZone) Validate() error {
+	return validation.ValidateStruct(&c,
+		validation.Field(&c.ParentDomain, validation.Required, is.Domain),
+		validation.Field(&c.ReuseExisting, validation.Required),
+	)
 }
 
 // ClusterGithub identifies a repository and path on github.com where
@@ -116,6 +158,15 @@ type ClusterGithub struct {
 	// Team name on github.com, e.g., "kjøremiljø". The team you
 	// specify here must be owned by the organisation specified above.
 	Team string `json:"team"`
+}
+
+func (c ClusterGithub) Validate() error {
+	return validation.ValidateStruct(&c,
+		validation.Field(&c.Organisation, validation.Required),
+		validation.Field(&c.Repository, validation.Required),
+		validation.Field(&c.OutputPath, validation.Required),
+		validation.Field(&c.Team, validation.Required),
+	)
 }
 
 // ClusterIntegrations ...
@@ -143,6 +194,15 @@ type ClusterIntegrations struct {
 	// integration requires ALBIngressController, ExternalDNS and Cognito.
 	// +optional
 	ArgoCD bool `json:"argoCD,omitempty"`
+}
+
+// Validate ensures there is no conflicting options
+func (c ClusterIntegrations) Validate() error {
+	if c.ArgoCD && !c.Cognito {
+		return errors.New("the identity provider cognito is required when using ArgoCD")
+	}
+	
+	return nil
 }
 
 // ClusterTypeMeta returns an initialised TypeMeta object
