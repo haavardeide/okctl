@@ -29,6 +29,9 @@ func getVpcState(fs *afero.Afero, outputDir string) api.Vpc {
 
 // StringFetcher defines a function which can be used to delay fetching of strings
 type StringFetcher func() string
+// HostedZoneFetcher defines a function which can be used to delay fetching of a hosted zone
+type HostedZoneFetcher func() *state.HostedZone
+
 
 // CreateClusterStateRefresher creates a function that gathers required runtime data for a cluster resource
 func CreateClusterStateRefresher(fs *afero.Afero, outputDir string, cidrFn StringFetcher) resourcetree.StateRefreshFn {
@@ -52,21 +55,25 @@ func CreateALBIngressControllerRefresher(fs *afero.Afero, outputDir string) reso
 }
 
 // CreateExternalDNSStateRefresher creates a function that gathers required runtime data for a External DNS resource
-func CreateExternalDNSStateRefresher(domainFetcher StringFetcher, hostedZoneIDFetcher StringFetcher) resourcetree.StateRefreshFn {
+func CreateExternalDNSStateRefresher(primaryHostedZoneFetcher HostedZoneFetcher) resourcetree.StateRefreshFn {
 	return func(node *resourcetree.ResourceNode) {
+		hostedZone := primaryHostedZoneFetcher()
+
 		node.ResourceState = reconsiler.ExternalDNSResourceState{
-			HostedZoneID: hostedZoneIDFetcher(),
-			Domain:       domainFetcher(),
+			HostedZoneID: hostedZone.ID,
+			Domain:       hostedZone.Domain,
 		}
 	}
 }
 
 // CreateIdentityManagerRefresher creates a function that gathers required runtime data for a Identity Manager resource
-func CreateIdentityManagerRefresher(domainFetcher StringFetcher, hostedZoneIDFetcher StringFetcher) resourcetree.StateRefreshFn {
+func CreateIdentityManagerRefresher(primaryHostedZoneFetcher HostedZoneFetcher) resourcetree.StateRefreshFn {
 	return func(node *resourcetree.ResourceNode) {
+		hostedZone := primaryHostedZoneFetcher()
+
 		node.ResourceState = reconsiler.IdentityManagerResourceState{
-			HostedZoneID: hostedZoneIDFetcher(),
-			Domain:       domainFetcher(),
+			HostedZoneID: hostedZone.ID,
+			Domain:       hostedZone.Domain,
 		}
 	}
 }
@@ -80,9 +87,6 @@ func CreateGithubStateRefresher(ghGetter reconsiler.GithubGetter, ghSetter recon
 		}
 	}
 }
-
-// HostedZoneFetcher defines a function which can be used to delay fetching of a hosted zone
-type HostedZoneFetcher func() *state.HostedZone
 
 // CreateArgocdStateRefresher creates a function that gathers required runtime data for a ArgoCD resource
 func CreateArgocdStateRefresher(hostedZoneFetcher HostedZoneFetcher) resourcetree.StateRefreshFn {

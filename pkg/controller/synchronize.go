@@ -19,8 +19,6 @@ type SynchronizeOpts struct {
 	GithubSetter reconsiler.GithubSetter
 
 	CIDRGetter StringFetcher
-	PrimaryHostedZoneDomainGetter StringFetcher
-	PrimaryHostedZoneIDGetter StringFetcher
 	PrimaryHostedZoneGetter HostedZoneFetcher
 }
 
@@ -38,13 +36,11 @@ func Synchronize(opts *SynchronizeOpts) error {
 	))
 
 	opts.DesiredTree.SetStateRefresher(resourcetree.ResourceNodeTypeExternalDNS, CreateExternalDNSStateRefresher(
-		opts.PrimaryHostedZoneDomainGetter,
-		opts.PrimaryHostedZoneIDGetter,
+		opts.PrimaryHostedZoneGetter,
 	))
 	
 	opts.DesiredTree.SetStateRefresher(resourcetree.ResourceNodeTypeIdentityManager, CreateIdentityManagerRefresher(
-		opts.PrimaryHostedZoneDomainGetter,
-		opts.PrimaryHostedZoneIDGetter,
+		opts.PrimaryHostedZoneGetter,
 	))
 
 	opts.DesiredTree.SetStateRefresher(resourcetree.ResourceNodeTypeGithub, CreateGithubStateRefresher(

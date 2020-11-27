@@ -123,8 +123,6 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 				GithubGetter:          o.RepoStateWithEnv.GetGithub,
 				GithubSetter:          o.RepoStateWithEnv.SaveGithub,
 				CIDRGetter: func() string { return o.RepoStateWithEnv.GetVPC().CIDR },
-				PrimaryHostedZoneDomainGetter: func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
-				PrimaryHostedZoneIDGetter: func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
 				PrimaryHostedZoneGetter: func() *state.HostedZone { return o.RepoStateWithEnv.GetPrimaryHostedZone() },
 			}
 
