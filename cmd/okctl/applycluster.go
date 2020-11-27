@@ -27,9 +27,6 @@ type applyClusterOpts struct {
 	Declaration *v1alpha1.Cluster
 }
 
-// TODO: create primary hosted zone contains ask for user functionality
-// TODO: something contains --||-- (have you sent us the outlined information)
-
 func (o *applyClusterOpts) Validate() error {
 	return validation.ValidateStruct(o,
 		validation.Field(&o.File, validation.Required),
@@ -82,9 +79,6 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 				Environment:  opts.Declaration.Metadata.Environment,
 				Repository:   o.RepoStateWithEnv.GetMetadata().Name,
 				ClusterName: o.RepoStateWithEnv.GetClusterName(),
-				// TODO: Other services possibly relies on o.RepoStateWithEnv.GetClusterName(). Need to ensure
-				// using a custom name is OK
-				// ClusterName:  opts.Declaration.Metadata.Name,
 			}
 
 			spin, err := spinner.New("synchronizing", o.Err)
@@ -95,53 +89,17 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 
 			outputDir, _ := o.GetRepoOutputDir(opts.Declaration.Metadata.Environment)
 
-			desiredGraph := controller.CreateDesiredStateGraph(opts.Declaration)
-			
-			repoDir, err := o.GetRepoDir() // TODO: Should be moved up
+			repoDir, err := o.GetRepoDir()
 			if err != nil {
-			    return fmt.Errorf("could not get Repository dir: %w", err)
+				return fmt.Errorf("could not get Repository dir: %w", err)
 			}
+
+			desiredGraph := controller.CreateDesiredStateGraph(opts.Declaration)
 
 			err = controller.ApplyDesiredStateMetadata(desiredGraph, opts.Declaration, repoDir)
 			if err != nil {
 			    return fmt.Errorf("could not apply desired state metadata: %w", err)
 			}
-
-			desiredGraph.SetStateRefresher(resourcetree.ResourceNodeTypeCluster, controller.CreateClusterStateRefresher(
-				o.FileSystem,
-				outputDir,
-				func() string { return o.RepoStateWithEnv.GetVPC().CIDR },
-			))
-
-			desiredGraph.SetStateRefresher(resourcetree.ResourceNodeTypeALBIngress, controller.CreateALBIngressControllerRefresher(
-				o.FileSystem,
-				outputDir,
-			))
-
-			desiredGraph.SetStateRefresher(resourcetree.ResourceNodeTypeExternalDNS, controller.CreateExternalDNSStateRefresher(
-				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
-				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().ID },
-			))
-
-			desiredGraph.SetStateRefresher(resourcetree.ResourceNodeTypeIdentityManager, controller.CreateIdentityManagerRefresher(
-				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
-				func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().ID },
-			))
-
-			desiredGraph.SetStateRefresher(resourcetree.ResourceNodeTypeGithub, controller.CreateGithubStateRefresher(
-				o.RepoStateWithEnv.GetGithub,
-				o.RepoStateWithEnv.SaveGithub,
-			))
-
-			desiredGraph.SetStateRefresher(resourcetree.ResourceNodeTypeArgoCD, controller.CreateArgocdStateRefresher(
-				func() *state.HostedZone { return o.RepoStateWithEnv.GetPrimaryHostedZone() },
-			))
-
-			createCurrentStateGraphOpts, _ := controller.NewCreateCurrentStateGraphOpts(
-				o.FileSystem,
-				outputDir,
-			)
-			currentGraph := controller.CreateCurrentStateGraph(createCurrentStateGraphOpts)
 
 			reconsiliationManager := reconsiler.NewReconsilerManager(&resourcetree.CommonMetadata{
 				Ctx: o.Ctx,
@@ -156,8 +114,21 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeExternalDNS, reconsiler.NewExternalDNSReconsiler(services.ExternalDNS))
 			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeGithub, reconsiler.NewGithubReconsiler(services.Github))
 			reconsiliationManager.AddReconsiler(resourcetree.ResourceNodeTypeIdentityManager, reconsiler.NewIdentityManagerReconsiler(services.IdentityManager))
+			
+			synchronizeOpts := &controller.SynchronizeOpts{
+				DesiredTree:           desiredGraph,
+				ReconsiliationManager: reconsiliationManager,
+				Fs:                    o.FileSystem,
+				OutputDir:             outputDir,
+				GithubGetter:          o.RepoStateWithEnv.GetGithub,
+				GithubSetter:          o.RepoStateWithEnv.SaveGithub,
+				CIDRGetter: func() string { return o.RepoStateWithEnv.GetVPC().CIDR },
+				PrimaryHostedZoneDomainGetter: func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
+				PrimaryHostedZoneIDGetter: func() string { return o.RepoStateWithEnv.GetPrimaryHostedZone().Domain },
+				PrimaryHostedZoneGetter: func() *state.HostedZone { return o.RepoStateWithEnv.GetPrimaryHostedZone() },
+			}
 
-			err = controller.Synchronize(reconsiliationManager, desiredGraph, currentGraph)
+			err = controller.Synchronize(synchronizeOpts)
 			if err != nil {
 			    return fmt.Errorf("error synchronizing declaration with state: %w", err)
 			}
@@ -169,7 +140,7 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&opts.File, "file", "f", "", usageApplyClusterFile)
 	
-	cmd.Hidden = true // To be removed when feature is complete
+	cmd.Hidden = true // TODO: remove when feature is complete
 
 	return cmd
 }
@@ -225,10 +196,6 @@ func loadNoUserInputUserData(o *okctl.Okctl, cmd *cobra.Command) error {
 
 func loadNoUserInputRepoData(o *okctl.Okctl, declaration *v1alpha1.Cluster) error {
 	repoDataNotFound := load.CreateOnRepoDataNotFoundWithNoUserInput(declaration)
-
-	//if o.NoInput {
-	//	repoDataNotFound = load.ErrOnRepoDataNotFound()
-	//}
 
 	o.RepoDataLoader = load.RepoDataFromConfigFile(repoDataNotFound)
 
