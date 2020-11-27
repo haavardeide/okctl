@@ -32,7 +32,7 @@ type Cluster struct {
 	// PrimaryDNSZone defines the main primary zone to associate with this
 	// cluster. This will be the zone that we will use to create domains
 	// for auth, ArgoCD, etc.
-	PrimaryDNSZone ClusterDNSZone `json:"primaryDNZZone"`
+	PrimaryDNSZone ClusterDNSZone `json:"primaryDNSZone"`
 
 	// VPC defines how we configure the VPC for the cluster
 	// +optional
@@ -78,7 +78,7 @@ type ClusterMeta struct {
 
 	// AccountID specifies the AWS Account ID
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html
-	AccountID int `json:"accountID"`
+	AccountID string `json:"accountID"`
 }
 
 // Validate ensures ClusterMeta contains the right information
@@ -86,7 +86,7 @@ func (receiver ClusterMeta) Validate() error {
 	return validation.ValidateStruct(&receiver,
 		validation.Field(&receiver.Name, validation.Required),
 		validation.Field(&receiver.Environment, validation.Required, validation.Match(regexp.MustCompile("^[a-zA-Z]{3,64}$")).Error("must consist of 3-64 characters (a-z, A-Z)")),
-		validation.Field(&receiver.Region, validation.Required, validation.In("eu-west-1")),
+		validation.Field(&receiver.Region, validation.Required, validation.In("eu-west-1").Error("for now, only \"eu-west-1\" is supported")),
 		validation.Field(&receiver.AccountID, validation.Required, validation.Match(regexp.MustCompile("^[0-9]{12}$")).Error("must consist of 12 digits")),
 	)
 }
@@ -137,7 +137,6 @@ type ClusterDNSZone struct {
 func (c ClusterDNSZone) Validate() error {
 	return validation.ValidateStruct(&c,
 		validation.Field(&c.ParentDomain, validation.Required, is.Domain),
-		validation.Field(&c.ReuseExisting, validation.Required),
 	)
 }
 
@@ -215,7 +214,7 @@ func ClusterTypeMeta() metav1.TypeMeta {
 }
 
 // NewDefaultCluster returns a cluster definition with sensible defaults
-func NewDefaultCluster(name, env, org, repo, team string, accountID int) Cluster {
+func NewDefaultCluster(name, env, org, repo, team, accountID string) Cluster {
 	return Cluster{
 		TypeMeta: ClusterTypeMeta(),
 		Metadata: ClusterMeta{
@@ -223,6 +222,10 @@ func NewDefaultCluster(name, env, org, repo, team string, accountID int) Cluster
 			Environment: env,
 			Region:      "eu-west-1",
 			AccountID:   accountID,
+		},
+		PrimaryDNSZone: ClusterDNSZone{
+			ParentDomain:  "",
+			ReuseExisting: false,
 		},
 		Github: ClusterGithub{
 			Organisation: org,

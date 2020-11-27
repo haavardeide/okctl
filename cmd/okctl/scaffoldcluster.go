@@ -13,7 +13,7 @@ const scaffoldClusterArgumentQuantity = 2
 type scaffoldClusterOpts struct {
 	Name string
 	
-	AWSAccountID int
+	AWSAccountID string
 	Environment string
 	Organization string
 	RepositoryName string
@@ -63,7 +63,7 @@ func buildScaffoldClusterCommand(o *okctl.Okctl) *cobra.Command {
 	flags.StringVarP(&opts.Organization, "github-organization", "o", "oslokommune", usageOrganization)
 	flags.StringVarP(&opts.RepositoryName, "repository-name", "r", "my_iac_repo_name", usageRepository)
 	flags.StringVarP(&opts.Team, "github-team", "t", "my_team", usageTeam)
-	flags.IntVarP(&opts.AWSAccountID, "aws-account-id", "i", 100000000000, usageAWSAccountID)
+	flags.StringVarP(&opts.AWSAccountID, "aws-account-id", "i", "123456789123", usageAWSAccountID)
 	
 	return cmd
 }

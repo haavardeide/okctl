@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
-	"strconv"
 )
 
 type applyClusterOpts struct {
@@ -61,7 +60,7 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 
 			err = o.InitialiseWithEnvAndAWSAccountID(
 				opts.Declaration.Metadata.Environment,
-				strconv.Itoa(opts.Declaration.Metadata.AccountID),
+				opts.Declaration.Metadata.AccountID,
 			)
 			if err != nil {
 				return fmt.Errorf("error initializing okctl: %w", err)
@@ -80,7 +79,7 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 
 			id := api.ID{
 				Region:       opts.Declaration.Metadata.Region,
-				AWSAccountID: strconv.Itoa(opts.Declaration.Metadata.AccountID),
+				AWSAccountID: opts.Declaration.Metadata.AccountID,
 				Environment:  opts.Declaration.Metadata.Environment,
 				Repository:   o.RepoStateWithEnv.GetMetadata().Name,
 				ClusterName: o.RepoStateWithEnv.GetClusterName(),
@@ -172,7 +171,7 @@ func inferClusterFromStdinOrFile(stdin io.Reader, path string) (*v1alpha1.Cluste
 		cluster v1alpha1.Cluster
 	)
 	
-	cluster = v1alpha1.NewDefaultCluster("", "", "", "", "", 0)
+	cluster = v1alpha1.NewDefaultCluster("", "", "", "", "", "")
 	
 	_, err = io.Copy(&buffer, inputReader)
 	if err != nil {
