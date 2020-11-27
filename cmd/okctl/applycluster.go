@@ -71,7 +71,6 @@ func buildApplyClusterCommand(o *okctl.Okctl) *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) (err error) {
 			return nil
 		},
-		
 		RunE: func(cmd *cobra.Command, _ []string) (err error) {
 			id := api.ID{
 				Region:       opts.Declaration.Metadata.Region,

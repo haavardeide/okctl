@@ -5,6 +5,7 @@ import (
 	"github.com/mishudark/errors"
 	"github.com/oslokommune/okctl/pkg/apis/okctl.io/v1alpha1"
 	"github.com/oslokommune/okctl/pkg/config"
+	"github.com/oslokommune/okctl/pkg/config/state"
 	"github.com/oslokommune/okctl/pkg/controller/reconsiler"
 	"github.com/oslokommune/okctl/pkg/controller/resourcetree"
 	"github.com/oslokommune/okctl/pkg/git"
@@ -24,11 +25,9 @@ type existingServices struct {
 }
 
 // NewCreateCurrentStateGraphOpts creates an initialized existingServices struct
-func NewCreateCurrentStateGraphOpts(fs *afero.Afero, outputDir string) (*existingServices, error) {
+func NewCreateCurrentStateGraphOpts(fs *afero.Afero, outputDir string, githubGetter reconsiler.GithubGetter) (*existingServices, error) {
 	var err error
 
-	// TODO: Create tester for .okctl.yml only information. Github state gets stored there
-	
 	tester := func(target string) (exists bool) {
 		baseDir := path.Join(outputDir, target)
 		
@@ -38,6 +37,7 @@ func NewCreateCurrentStateGraphOpts(fs *afero.Afero, outputDir string) (*existin
 	}
 
 	return &existingServices{
+		hasGithubSetup: 		 githubTester(githubGetter()),
 		hasPrimaryHostedZone:    tester(config.DefaultDomainBaseDir),
 		hasVPC:                  tester(config.DefaultVpcBaseDir),
 		hasCluster:              tester(config.DefaultClusterBaseDir),
@@ -57,7 +57,7 @@ func CreateCurrentStateGraph(opts *existingServices) (root *resourcetree.Resourc
 		clusterNode *resourcetree.ResourceNode
 	)
 
-	createNode(root, resourcetree.ResourceNodeTypeGithub, false)
+	createNode(root, resourcetree.ResourceNodeTypeGithub, opts.hasGithubSetup)
 
 	primaryHostedZoneNode := createNode(root, resourcetree.ResourceNodeTypeZone, opts.hasPrimaryHostedZone)
 	vpcNode = createNode(primaryHostedZoneNode, resourcetree.ResourceNodeTypeVPC, opts.hasVPC)
@@ -153,4 +153,21 @@ func createNode(parent *resourcetree.ResourceNode, nodeType resourcetree.Resourc
 	}
 
 	return child
+}
+
+func githubTester(github state.Github) bool {
+	if len(github.Repositories) == 0 {
+		return false
+	}
+
+	for _, repo := range github.Repositories {
+		err := repo.Validate()
+		if err != nil {
+			return false
+		}
+
+		break
+	}
+
+	return true
 }

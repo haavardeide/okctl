@@ -32,7 +32,6 @@ type StringFetcher func() string
 // HostedZoneFetcher defines a function which can be used to delay fetching of a hosted zone
 type HostedZoneFetcher func() *state.HostedZone
 
-
 // CreateClusterStateRefresher creates a function that gathers required runtime data for a cluster resource
 func CreateClusterStateRefresher(fs *afero.Afero, outputDir string, cidrFn StringFetcher) resourcetree.StateRefreshFn {
 	return func(node *resourcetree.ResourceNode) {
